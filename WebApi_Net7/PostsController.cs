@@ -39,9 +39,14 @@ public class PostsController : ControllerBase
         }
 
         using var context = new BlogsContext();
-     
-        context.Posts.Add(post);
-        await context.SaveChangesAsync();
+
+        using (var transaction = context.Database.BeginTransaction())
+        {
+            context.Posts.Add(post);
+            await context.SaveChangesAsync();
+
+            transaction.Rollback();
+        }
 
         return Ok(post);
     }
@@ -56,8 +61,13 @@ public class PostsController : ControllerBase
 
         using var context = new BlogsContext();
 
-        context.Entry(post).State = EntityState.Modified;
-        await context.SaveChangesAsync();
+        using (var transaction = context.Database.BeginTransaction())
+        {
+            context.Entry(post).State = EntityState.Modified;
+            await context.SaveChangesAsync();
+
+            transaction.Rollback();
+        }
 
         return Ok(post);
     }
@@ -74,8 +84,13 @@ public class PostsController : ControllerBase
             return NotFound();
         }
 
-        context.Posts.Remove(post);
-        await context.SaveChangesAsync();
+        using (var transaction = context.Database.BeginTransaction())
+        {
+            context.Posts.Remove(post);
+            await context.SaveChangesAsync();
+
+            transaction.Rollback();
+        }
 
         return Ok(post);
     }
@@ -87,20 +102,25 @@ public class PostsController : ControllerBase
         
         using var context = new BlogsContext();
         
-        var posts = await context.Posts
-            .Where(p => p.Blog.Name == blogName
-                        && p.PublishedOn < priorToDateTime
-                        && !p.Archived)
-            .ToListAsync();
-
-        foreach (var post in posts)
+        using (var transaction = context.Database.BeginTransaction())
         {
-            post.Archived = true;
-            post.Banner = $"This post was published in {post.PublishedOn.Year} and has been archived.";
-            post.Title += $" ({post.PublishedOn.Year})";
-        }
+            var posts = await context.Posts
+                .Where(p => p.Blog.Name == blogName
+                            && p.PublishedOn < priorToDateTime
+                            && !p.Archived)
+                .ToListAsync();
 
-        await context.SaveChangesAsync();
+            foreach (var post in posts)
+            {
+                post.Archived = true;
+                post.Banner = $"This post was published in {post.PublishedOn.Year} and has been archived.";
+                post.Title += $" ({post.PublishedOn.Year})";
+            }
+
+            await context.SaveChangesAsync();
+
+            transaction.Rollback();
+        }
 
         return Ok();
     }
@@ -110,21 +130,26 @@ public class PostsController : ControllerBase
     {
         using var context = new BlogsContext();
         
-        var posts = await context.Posts
-            .Where(p => p.Blog.Name == blogName
-                        && p.Archived)
-            .ToListAsync();
-
-        foreach (var post in posts)
+        using (var transaction = context.Database.BeginTransaction())
         {
-            var stats = JsonConvert.DeserializeObject<PostStatistics>(post.Stats);
-            if (stats.Rating < minimumRating)
-            {
-                context.Posts.Remove(post);
-            }
-        }
+            var posts = await context.Posts
+                .Where(p => p.Blog.Name == blogName
+                            && p.Archived)
+                .ToListAsync();
 
-        await context.SaveChangesAsync();
+            foreach (var post in posts)
+            {
+                var stats = JsonConvert.DeserializeObject<PostStatistics>(post.Stats);
+                if (stats.Rating < minimumRating)
+                {
+                    context.Posts.Remove(post);
+                }
+            }
+
+            await context.SaveChangesAsync();
+
+            transaction.Rollback();
+        }
 
         return Ok();
     }
