@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 
 namespace WebApi_Net7;
 
@@ -79,7 +78,7 @@ public class PostsController : ControllerBase
     {
         var priorToDateTime = new DateTime(priorToYear, 1, 1);
 
-        var posts = await _context.Posts
+        await _context.Posts
             .Where(
                 p => p.Blog.Name == blogName
                     && p.Blog.Account.Details.IsPremium == false
