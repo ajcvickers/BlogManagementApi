@@ -11,23 +11,23 @@ public class PostsController : ControllerBase
     public async Task<IEnumerable<Post>> GetPosts()
     {
         using var context = new BlogsContext();
-        
+
         return await context.Posts
             .Include(p => p.Blog)
             .AsNoTracking()
             .ToListAsync();
     }
-    
+
     [HttpGet("api/posts/{id}")]
     public async Task<ActionResult<Post>> GetPost(int id)
     {
         using var context = new BlogsContext();
-        
+
         var post = await context.Posts
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id);
 
-        return post == null ? NotFound() : post;
+        return post == null ? NotFound() : Ok(post);
     }
 
     [HttpPost("api/posts")]
@@ -40,13 +40,8 @@ public class PostsController : ControllerBase
 
         using var context = new BlogsContext();
 
-        using (var transaction = context.Database.BeginTransaction())
-        {
-            context.Posts.Add(post);
-            await context.SaveChangesAsync();
-
-            transaction.Rollback();
-        }
+        context.Posts.Add(post);
+        await context.SaveChangesAsync();
 
         return Ok(post);
     }
@@ -61,95 +56,57 @@ public class PostsController : ControllerBase
 
         using var context = new BlogsContext();
 
-        using (var transaction = context.Database.BeginTransaction())
-        {
-            context.Entry(post).State = EntityState.Modified;
-            await context.SaveChangesAsync();
-
-            transaction.Rollback();
-        }
+        context.Entry(post).State = EntityState.Modified;
+        await context.SaveChangesAsync();
 
         return Ok(post);
     }
-    
+
     [HttpDelete("api/posts/{id}")]
     public async Task<ActionResult> DeletePost(int id)
     {
         using var context = new BlogsContext();
 
-        var post = await context.Posts.FindAsync(id);
+        var post = await context.Posts.FirstOrDefaultAsync(p => p.Id == id);
 
         if (post == null)
         {
             return NotFound();
         }
 
-        using (var transaction = context.Database.BeginTransaction())
-        {
-            context.Posts.Remove(post);
-            await context.SaveChangesAsync();
+        context.Posts.Remove(post);
+        await context.SaveChangesAsync();
 
-            transaction.Rollback();
-        }
-
-        return Ok(post);
+        return Ok();
     }
 
     [HttpPut("api/posts/archive")]
     public async Task<ActionResult> ArchivePosts(string blogName, int priorToYear)
     {
         var priorToDateTime = new DateTime(priorToYear, 1, 1);
-        
-        using var context = new BlogsContext();
-        
-        using (var transaction = context.Database.BeginTransaction())
-        {
-            var posts = await context.Posts
-                .Where(p => p.Blog.Name == blogName
-                            && p.PublishedOn < priorToDateTime
-                            && !p.Archived)
-                .ToListAsync();
 
-            foreach (var post in posts)
+        using var context = new BlogsContext();
+
+        var posts = await context.Posts
+            .Include(p => p.Blog.Account)
+            .Where(
+                p => p.Blog.Name == blogName
+                    && p.PublishedOn < priorToDateTime
+                    && !p.Archived)
+            .ToListAsync();
+
+        foreach (var post in posts)
+        {
+            var accountDetails = JsonConvert.DeserializeObject<AccountDetails>(post.Blog.Account.Details)!;
+            if (!accountDetails.IsPremium)
             {
                 post.Archived = true;
                 post.Banner = $"This post was published in {post.PublishedOn.Year} and has been archived.";
                 post.Title += $" ({post.PublishedOn.Year})";
             }
-
-            await context.SaveChangesAsync();
-
-            transaction.Rollback();
         }
 
-        return Ok();
-    }
-    
-    [HttpPut("api/posts/deletefailed")]
-    public async Task<ActionResult> DeleteFailedPosts(string blogName, double minimumRating)
-    {
-        using var context = new BlogsContext();
-        
-        using (var transaction = context.Database.BeginTransaction())
-        {
-            var posts = await context.Posts
-                .Where(p => p.Blog.Name == blogName
-                            && p.Archived)
-                .ToListAsync();
-
-            foreach (var post in posts)
-            {
-                var stats = JsonConvert.DeserializeObject<PostStatistics>(post.Stats);
-                if (stats.Rating < minimumRating)
-                {
-                    context.Posts.Remove(post);
-                }
-            }
-
-            await context.SaveChangesAsync();
-
-            transaction.Rollback();
-        }
+        await context.SaveChangesAsync();
 
         return Ok();
     }
