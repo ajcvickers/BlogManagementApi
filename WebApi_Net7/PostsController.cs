@@ -67,7 +67,7 @@ public class PostsController : ControllerBase
     {
         using var context = new BlogsContext();
 
-        var post = await context.Posts.FirstOrDefaultAsync(p => p.Id == id);
+        var post = await context.Posts.Where(p => p.Id == id).FirstOrDefaultAsync();
 
         if (post == null)
         {
