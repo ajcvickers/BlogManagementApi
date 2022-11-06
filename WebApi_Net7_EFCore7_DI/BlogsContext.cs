@@ -1,11 +1,11 @@
-﻿using System.Data.Entity;
+﻿using Microsoft.EntityFrameworkCore;
 
-namespace WebApi_Framework48_EF6;
+namespace WebApi_Net7;
 
 public class BlogsContext : DbContext
 {
-    public BlogsContext()
-        : base("name=Blogs")
+    public BlogsContext(DbContextOptions<BlogsContext> options)
+        : base(options)
     {
     }
 
@@ -13,7 +13,7 @@ public class BlogsContext : DbContext
     public DbSet<Post> Posts { get; set; }
     public DbSet<Account> Accounts { get; set; }
 
-    protected override void OnModelCreating(DbModelBuilder modelBuilder)
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
             .Entity<Blog>()

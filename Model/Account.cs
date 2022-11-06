@@ -8,8 +8,8 @@ public class Account
     [MaxLength(64)]
     public string Owner { get; set; }
 
-    public string Details { get; set; }
-    //public AccountDetails Details { get; set; }
+    public string DetailsJson { get; set; }
+    public AccountDetails Details { get; set; }
 
     public List<Blog> Blogs { get; set; } = new();
 }

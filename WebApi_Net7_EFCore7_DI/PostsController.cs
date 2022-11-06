@@ -1,5 +1,5 @@
-﻿using System.Data.Entity;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 
 namespace WebApi_Net7;
@@ -7,12 +7,17 @@ namespace WebApi_Net7;
 [ApiController]
 public class PostsController : ControllerBase
 {
+    private readonly BlogsContext _context;
+
+    public PostsController(BlogsContext context)
+    {
+        _context = context;
+    }
+
     [HttpGet("api/posts")]
     public async Task<IEnumerable<Post>> GetPosts()
     {
-        using var context = new BlogsContext();
-
-        return await context.Posts
+        return await _context.Posts
             .Include(p => p.Blog)
             .AsNoTracking()
             .ToListAsync();
@@ -21,9 +26,7 @@ public class PostsController : ControllerBase
     [HttpGet("api/posts/{id}")]
     public async Task<ActionResult<Post>> GetPost(int id)
     {
-        using var context = new BlogsContext();
-
-        var post = await context.Posts
+        var post = await _context.Posts
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id);
 
@@ -38,10 +41,8 @@ public class PostsController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        using var context = new BlogsContext();
-
-        context.Posts.Add(post);
-        await context.SaveChangesAsync();
+        _context.Posts.Add(post);
+        await _context.SaveChangesAsync();
 
         return Ok(post);
     }
@@ -54,10 +55,8 @@ public class PostsController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        using var context = new BlogsContext();
-
-        context.Entry(post).State = EntityState.Modified;
-        await context.SaveChangesAsync();
+        _context.Entry(post).State = EntityState.Modified;
+        await _context.SaveChangesAsync();
 
         return Ok(post);
     }
@@ -65,17 +64,15 @@ public class PostsController : ControllerBase
     [HttpDelete("api/posts/{id}")]
     public async Task<ActionResult> DeletePost(int id)
     {
-        using var context = new BlogsContext();
-
-        var post = await context.Posts.Where(p => p.Id == id).FirstOrDefaultAsync();
+        var post = await _context.Posts.Where(p => p.Id == id).FirstOrDefaultAsync();
 
         if (post == null)
         {
             return NotFound();
         }
 
-        context.Posts.Remove(post);
-        await context.SaveChangesAsync();
+        _context.Posts.Remove(post);
+        await _context.SaveChangesAsync();
 
         return Ok();
     }
@@ -85,9 +82,7 @@ public class PostsController : ControllerBase
     {
         var priorToDateTime = new DateTime(priorToYear, 1, 1);
 
-        using var context = new BlogsContext();
-
-        var posts = await context.Posts
+        var posts = await _context.Posts
             .Include(p => p.Blog.Account)
             .Where(
                 p => p.Blog.Name == blogName
@@ -106,7 +101,7 @@ public class PostsController : ControllerBase
             }
         }
 
-        await context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
 
         return Ok();
     }

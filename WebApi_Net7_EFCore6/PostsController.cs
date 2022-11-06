@@ -1,18 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data.Entity;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Web.Http;
-using System.Web.Http.Description;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 
-namespace WebApi_Framework48_EF6;
+namespace WebApi_Net7;
 
-public class PostsController : ApiController
+[ApiController]
+public class PostsController : ControllerBase
 {
-    [HttpGet]
-    [Route("api/posts")]
+    [HttpGet("api/posts")]
     public async Task<IEnumerable<Post>> GetPosts()
     {
         using var context = new BlogsContext();
@@ -23,10 +18,8 @@ public class PostsController : ApiController
             .ToListAsync();
     }
 
-    [HttpGet]
-    [Route("api/posts/{id}")]
-    [ResponseType(typeof(Post))]
-    public async Task<IHttpActionResult> GetPost(int id)
+    [HttpGet("api/posts/{id}")]
+    public async Task<ActionResult<Post>> GetPost(int id)
     {
         using var context = new BlogsContext();
 
@@ -37,10 +30,8 @@ public class PostsController : ApiController
         return post == null ? NotFound() : Ok(post);
     }
 
-    [HttpPost]
-    [Route("api/posts")]
-    [ResponseType(typeof(Post))]
-    public async Task<IHttpActionResult> InsertPost(Post post)
+    [HttpPost("api/posts")]
+    public async Task<ActionResult<Post>> InsertPost(Post post)
     {
         if (!ModelState.IsValid)
         {
@@ -55,10 +46,8 @@ public class PostsController : ApiController
         return Ok(post);
     }
 
-    [HttpPut]
-    [Route("api/posts")]
-    [ResponseType(typeof(Post))]
-    public async Task<IHttpActionResult> UpdatePost(Post post)
+    [HttpPut("api/posts")]
+    public async Task<ActionResult<Post>> UpdatePost(Post post)
     {
         if (!ModelState.IsValid)
         {
@@ -73,9 +62,8 @@ public class PostsController : ApiController
         return Ok(post);
     }
 
-    [HttpDelete]
-    [Route("api/posts/{id}")]
-    public async Task<IHttpActionResult> DeletePost(int id)
+    [HttpDelete("api/posts/{id}")]
+    public async Task<ActionResult> DeletePost(int id)
     {
         using var context = new BlogsContext();
 
@@ -92,9 +80,8 @@ public class PostsController : ApiController
         return Ok();
     }
 
-    [HttpPut]
-    [Route("api/posts/archive")]
-    public async Task<IHttpActionResult> ArchivePosts(string blogName, int priorToYear)
+    [HttpPut("api/posts/archive")]
+    public async Task<ActionResult> ArchivePosts(string blogName, int priorToYear)
     {
         var priorToDateTime = new DateTime(priorToYear, 1, 1);
 
