@@ -55,7 +55,15 @@ public class PostsController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        _context.Entry(post).State = EntityState.Modified;
+        var existingPost = await _context.Posts.Where(p => p.Id == post.Id).FirstOrDefaultAsync();
+
+        if (existingPost == null)
+        {
+            return NotFound();
+        }
+
+        _context.Entry(existingPost).CurrentValues.SetValues(post);
+
         await _context.SaveChangesAsync();
 
         return Ok(post);

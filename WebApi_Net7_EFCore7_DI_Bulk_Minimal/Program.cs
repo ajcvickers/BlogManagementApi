@@ -50,12 +50,15 @@ app.MapPost(
 
 app.MapPut(
     "api/posts", async (Post post, BlogsContext context) =>
-    {
-        context.Entry(post).State = EntityState.Modified;
-        await context.SaveChangesAsync();
-
-        return Results.Ok(post);
-    });
+        await context.Posts.Where(p => p.Id == post.Id).ExecuteUpdateAsync(
+            updates => updates
+                .SetProperty(p => p.Title, post.Title)
+                .SetProperty(p => p.Banner, post.Banner)
+                .SetProperty(p => p.Content, post.Content)
+                .SetProperty(p => p.Archived, post.Archived)
+                .SetProperty(p => p.PublishedOn, post.PublishedOn)) == 0
+            ? Results.NotFound()
+            : Results.Ok(post));
 
 app.MapDelete(
     "api/posts/{id}",

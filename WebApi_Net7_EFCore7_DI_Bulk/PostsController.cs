@@ -54,24 +54,24 @@ public class PostsController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        _context.Entry(post).State = EntityState.Modified;
-        await _context.SaveChangesAsync();
+        var rowsAffected = await _context.Posts.Where(p => p.Id == post.Id).ExecuteUpdateAsync(
+            updates => updates
+                .SetProperty(p => p.Title, post.Title)
+                .SetProperty(p => p.Banner, post.Banner)
+                .SetProperty(p => p.Content, post.Content)
+                .SetProperty(p => p.Archived, post.Archived)
+                .SetProperty(p => p.PublishedOn, post.PublishedOn));
 
-        return Ok(post);
+        return rowsAffected == 0
+            ? NotFound()
+            : Ok(post);
     }
 
     [HttpDelete("api/posts/{id}")]
     public async Task<ActionResult> DeletePost(int id)
-    {
-        var rowsAffected = await _context.Posts.Where(p => p.Id == id).ExecuteDeleteAsync();
-
-        if (rowsAffected == 0)
-        {
-            return NotFound();
-        }
-
-        return Ok();
-    }
+        => await _context.Posts.Where(p => p.Id == id).ExecuteDeleteAsync() == 0
+            ? NotFound()
+            : Ok();
 
     [HttpPut("api/posts/archive")]
     public async Task<ActionResult> ArchivePosts(string blogName, int priorToYear)

@@ -56,7 +56,15 @@ public class PostsController : ControllerBase
 
         using var context = new BlogsContext();
 
-        context.Entry(post).State = EntityState.Modified;
+        var existingPost = await context.Posts.Where(p => p.Id == post.Id).FirstOrDefaultAsync();
+
+        if (existingPost == null)
+        {
+            return NotFound();
+        }
+
+        context.Entry(existingPost).CurrentValues.SetValues(post);
+
         await context.SaveChangesAsync();
 
         return Ok(post);
